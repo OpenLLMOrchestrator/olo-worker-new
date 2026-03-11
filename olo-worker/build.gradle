@@ -1,0 +1,64 @@
+plugins {
+  id "application"
+}
+
+dependencies {
+  implementation project(":olo-worker-configuration")
+  implementation project(":olo-worker-db")
+  implementation project(":olo-worker-cache")
+  implementation project(":olo-workflow-input")
+  implementation project(":olo-execution-tree")
+
+  implementation "io.temporal:temporal-sdk:1.30.0"
+  implementation "org.slf4j:slf4j-simple:2.0.16"
+
+  testImplementation "org.junit.jupiter:junit-jupiter:5.11.0"
+  testImplementation "com.fasterxml.jackson.core:jackson-databind:2.17.2"
+  testImplementation "com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.17.2"
+  testImplementation "io.lettuce:lettuce-core:6.4.0.RELEASE"
+  testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.11.0"
+}
+
+// Exclude integration tests (Redis/DB) from default test cycle
+tasks.named("test", Test).configure {
+  filter {
+    excludeTestsMatching("*BootstrapGlobalContextDump*")
+    failOnNoMatchingTests = false
+  }
+}
+
+// Copy configuration/debug/ensure-schema.sql into test resources so the integration test can run it
+def ensureSchemaSql = rootProject.file("configuration/debug/ensure-schema.sql")
+tasks.register("copyEnsureSchemaSql", Copy) {
+  from ensureSchemaSql
+  into layout.buildDirectory.dir("resources/test/configuration/debug")
+  onlyIf { ensureSchemaSql.exists() }
+  dependsOn tasks.named("processTestResources")
+}
+
+// Run only integration tests; not part of check. Use: ./gradlew :olo-worker:integrationTest
+tasks.register("integrationTest", Test) {
+  group = "verification"
+  description = "Runs integration tests (requires Redis and DB). Use to debug bootstrap global context dump."
+  testClassesDirs = sourceSets.test.output.classesDirs
+  classpath = sourceSets.test.runtimeClasspath
+  dependsOn tasks.named("copyEnsureSchemaSql")
+  jvmArgs "-Duser.timezone=UTC",
+          "-Dolo.bootstrap.config.wait.timeout.seconds=15"
+  filter {
+    includeTestsMatching("*BootstrapGlobalContextDump*")
+    includeTestsMatching("*FreshIntegrationCleanup*")
+  }
+  shouldRunAfter tasks.named("test")
+}
+
+application {
+  mainClass = "com.olo.worker.WorkerMain"
+}
+
+tasks.named("run", JavaExec).configure {
+  if (project.hasProperty("appMain")) {
+    mainClass = project.property("appMain").toString()
+  }
+}
+

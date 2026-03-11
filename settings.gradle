@@ -1,0 +1,12 @@
+rootProject.name = "olo-worker"
+
+include("olo-worker-configuration")
+include("olo-worker-db")
+include("olo-worker-cache")
+include("olo-workflow-input")
+include("olo-worker-bootstrap-loader")
+include("olo-worker-bootstrap-runtime")
+include("olo-execution-tree")
+include("olo-worker-variable-engine")
+include("olo-worker")
+

@@ -1,0 +1,27 @@
+allprojects {
+  group = "com.olo"
+  version = "0.1.0-SNAPSHOT"
+
+  repositories {
+    mavenCentral()
+  }
+}
+
+subprojects {
+  apply plugin: "java"
+
+  java {
+    toolchain {
+      languageVersion = JavaLanguageVersion.of(21)
+    }
+  }
+
+  tasks.withType(JavaCompile).configureEach {
+    options.release = 17
+  }
+
+  tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+  }
+}
+

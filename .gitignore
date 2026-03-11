@@ -1,0 +1,14 @@
+# Gradle
+.gradle/
+build/
+
+# Maven (leftovers)
+target/
+
+# IntelliJ / VSCode
+.idea/
+*.iml
+
+# OS
+Thumbs.db
+
