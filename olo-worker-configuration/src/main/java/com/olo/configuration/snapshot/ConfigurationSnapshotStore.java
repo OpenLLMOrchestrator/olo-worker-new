@@ -84,4 +84,13 @@ public interface ConfigurationSnapshotStore {
   default Map<String, Object> getTenantOverrides(String tenantId) {
     return null;
   }
+
+  /**
+   * Stores tenant overrides for the given tenant ID into the distributed cache.
+   * Implementations should write to {@link #TENANT_OVERRIDES_KEY_PREFIX} + tenantId.
+   * Default: no-op.
+   */
+  default void putTenantOverrides(String tenantId, Map<String, Object> overrides) {
+    // Default no-op.
+  }
 }

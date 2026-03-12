@@ -4,10 +4,15 @@ import com.olo.configuration.impl.config.SnapshotConfiguration;
 import com.olo.configuration.region.TenantRegionResolver;
 import com.olo.configuration.snapshot.CompositeConfigurationSnapshot;
 import com.olo.configuration.snapshot.ConfigurationSnapshot;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiConsumer;
 
 /**
  * Holder for the current configuration. Runtime path: multiple region snapshots
@@ -27,13 +32,41 @@ public final class ConfigurationProvider {
   /** Volatile: defaults + env only; set when Redis is not configured. Null when snapshot map is set. */
   private static volatile Configuration defaultConfiguration;
 
+  /** Regions configured at bootstrap from olo.regions/olo.region (defaults + env). Used for dump and execution tree scope. */
+  private static volatile List<String> configuredRegions;
+
+  /** Listeners notified when a region's composite is installed or removed (e.g. so worker can rebuild execution tree). */
+  private static final CopyOnWriteArrayList<BiConsumer<String, CompositeConfigurationSnapshot>> snapshotChangeListeners = new CopyOnWriteArrayList<>();
+
+  private static final Logger log = LoggerFactory.getLogger(ConfigurationProvider.class);
+
   private ConfigurationProvider() {}
+
+  /**
+   * Registers a listener invoked whenever a region's snapshot is set or removed.
+   * Invoked with (region, composite); composite is null when the region is removed.
+   * Called after {@link #putComposite} and for each region when {@link #setSnapshotMap} is called.
+   */
+  public static void addSnapshotChangeListener(BiConsumer<String, CompositeConfigurationSnapshot> listener) {
+    if (listener != null) snapshotChangeListeners.add(listener);
+  }
 
   /** Sets the flat configuration (defaults + env, no Redis). */
   public static void set(Configuration configuration) {
     defaultConfiguration = configuration;
     snapshotByRegion = null;
     primaryRegion = null;
+  }
+
+  /** Sets the list of regions this worker was configured to serve (from olo.regions/olo.region at bootstrap). */
+  public static void setConfiguredRegions(List<String> regions) {
+    configuredRegions = regions == null ? null : Collections.unmodifiableList(regions);
+  }
+
+  /** Returns the bootstrap-configured region list; empty if never set. */
+  public static List<String> getConfiguredRegions() {
+    List<String> r = configuredRegions;
+    return r == null ? List.of() : r;
   }
 
   /**
@@ -50,6 +83,7 @@ public final class ConfigurationProvider {
     c.setCore(s, s.getVersion());
     snapshotByRegion = Collections.singletonMap(s.getRegion(), c);
     primaryRegion = s.getRegion();
+    notifySnapshotChange(c.getRegion(), c);
   }
 
   /** Sets the sectioned snapshot for a single region (used during bootstrap before multi-region load). */
@@ -62,6 +96,7 @@ public final class ConfigurationProvider {
     }
     snapshotByRegion = Collections.singletonMap(c.getRegion(), c);
     primaryRegion = c.getRegion();
+    notifySnapshotChange(c.getRegion(), c);
   }
 
   /**
@@ -79,6 +114,9 @@ public final class ConfigurationProvider {
     primaryRegion = primaryRegionValue != null && !primaryRegionValue.isBlank()
         ? primaryRegionValue.trim()
         : map.keySet().iterator().next();
+    for (Map.Entry<String, CompositeConfigurationSnapshot> e : map.entrySet()) {
+      notifySnapshotChange(e.getKey(), e.getValue());
+    }
   }
 
   /** Returns the sectioned snapshot for the primary (worker) region, or null if using defaults-only. */
@@ -169,5 +207,16 @@ public final class ConfigurationProvider {
       next.remove(region);
     }
     snapshotByRegion = next;
+    notifySnapshotChange(region, composite);
+  }
+
+  private static void notifySnapshotChange(String region, CompositeConfigurationSnapshot composite) {
+    for (BiConsumer<String, CompositeConfigurationSnapshot> listener : snapshotChangeListeners) {
+      try {
+        listener.accept(region, composite);
+      } catch (Exception e) {
+        log.warn("Snapshot change listener threw for region={}: {}", region, e.getMessage());
+      }
+    }
   }
 }

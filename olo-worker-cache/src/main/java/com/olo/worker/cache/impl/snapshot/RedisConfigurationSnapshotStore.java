@@ -119,6 +119,7 @@ public final class RedisConfigurationSnapshotStore implements ConfigurationSnaps
         log.warn("Skipping put to Redis: core or meta value exceeds olo.config.snapshot.max.redis.value.bytes; region={}", region);
         return;
       }
+
       withConnection(conn -> {
         RedisCommands<String, String> cmd = conn.sync();
         cmd.multi();
@@ -249,7 +250,7 @@ public final class RedisConfigurationSnapshotStore implements ConfigurationSnaps
   @Override
   public Map<String, Object> getResources(String region) {
     if (region == null || region.isEmpty()) return null;
-    String key = RESOURCES_KEY_PREFIX + region;
+    String key = com.olo.configuration.RedisKeys.configPrefix() + ":resources:" + region;
     try {
       final String[] out = new String[1];
       withConnection(conn -> out[0] = conn.sync().get(key));
@@ -266,7 +267,7 @@ public final class RedisConfigurationSnapshotStore implements ConfigurationSnaps
   @Override
   public Map<String, Object> getTenantOverrides(String tenantId) {
     if (tenantId == null || tenantId.isBlank()) return null;
-    String key = TENANT_OVERRIDES_KEY_PREFIX + tenantId;
+    String key = com.olo.configuration.RedisKeys.configPrefix() + ":overrides:tenant:" + tenantId;
     try {
       final String[] out = new String[1];
       withConnection(conn -> out[0] = conn.sync().get(key));
@@ -277,6 +278,22 @@ public final class RedisConfigurationSnapshotStore implements ConfigurationSnaps
     } catch (Exception e) {
       log.error("Failed to get tenant overrides from Redis for tenantId={} (invalid or corrupted data); keeping current snapshot, will retry next cycle: {}", tenantId, e.getMessage());
       return null;
+    }
+  }
+
+  @Override
+  public void putTenantOverrides(String tenantId, Map<String, Object> overrides) {
+    if (tenantId == null || tenantId.isBlank() || overrides == null || overrides.isEmpty()) return;
+    String key = com.olo.configuration.RedisKeys.configPrefix() + ":overrides:tenant:" + tenantId;
+    try {
+      String json = MAPPER.writeValueAsString(overrides);
+      if (isOverLimit(json, key)) {
+        log.warn("Skipping tenant overrides put: value exceeds olo.config.snapshot.max.redis.value.bytes; tenantId={}", tenantId);
+        return;
+      }
+      withConnection(conn -> conn.sync().set(key, json));
+    } catch (Exception e) {
+      log.warn("Failed to put tenant overrides to Redis for tenantId={}: {}", tenantId, e.getMessage());
     }
   }
 

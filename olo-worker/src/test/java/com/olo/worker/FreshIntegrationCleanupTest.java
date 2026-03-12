@@ -31,7 +31,8 @@ class FreshIntegrationCleanupTest {
       "olo_tenant_pipeline_override",
       "olo_pipeline_template",
       "olo_configuration_tenant",
-      "olo_configuration_region"
+      "olo_configuration_region",
+      "olo_capabilities"
   };
 
   private static final String[] REDIS_KEY_PATTERNS = {

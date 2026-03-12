@@ -1,0 +1,202 @@
+{
+  "globalConfig" : {
+    "olo.region" : "default,us-east,eu-west",
+    "app.theme" : "light",
+    "app.timeoutSecs" : "30",
+    "feature.beta" : "false"
+  },
+  "primaryRegion" : "default",
+  "servedRegions" : [ "default", "us-east" ],
+  "globalCapabilities" : {
+    "plugins" : [ ],
+    "features" : [ ]
+  },
+  "regionCapabilities" : {
+    "default" : {
+      "plugins" : [ ],
+      "features" : [ ]
+    },
+    "us-east" : {
+      "plugins" : [ ],
+      "features" : [ ]
+    }
+  },
+  "tenantCapabilities" : {
+    "tenant-b" : {
+      "plugins" : [ ],
+      "features" : [ ]
+    },
+    "tenant-a" : {
+      "plugins" : [ ],
+      "features" : [ ]
+    },
+    "tenant-c" : {
+      "features" : [ ],
+      "plugins" : [ ]
+    }
+  },
+  "tenantToRegion" : {
+    "tenant-b" : "us-east",
+    "tenant-a" : "default",
+    "tenant-c" : "eu-west"
+  },
+  "snapshotsByRegion" : {
+    "default" : {
+      "region" : "default",
+      "snapshotId" : "default:1773322289124",
+      "coreVersion" : 1773322288968,
+      "pipelinesVersion" : 1773322289124,
+      "connectionsVersion" : 0,
+      "regionalSettingsVersion" : 1773322289124,
+      "coreLastUpdated" : "2026-03-12T13:31:28.968807500Z",
+      "coreGlobalConfigKeys" : [ "app.theme", "app.timeoutSecs", "feature.beta", "olo.region" ],
+      "coreRegionConfigKeys" : [ ],
+      "coreTenantIds" : [ ],
+      "coreResourceIds" : [ ],
+      "pipelineIds" : [ "default-pipeline", "default-pipeline-2" ],
+      "connectionIds" : [ ]
+    },
+    "us-east" : {
+      "region" : "us-east",
+      "snapshotId" : "us-east:1773322289494",
+      "coreVersion" : 1773322288968,
+      "pipelinesVersion" : 1773322289494,
+      "connectionsVersion" : 0,
+      "regionalSettingsVersion" : 1773322289494,
+      "coreLastUpdated" : "2026-03-12T13:31:28.968807500Z",
+      "coreGlobalConfigKeys" : [ "app.theme", "app.timeoutSecs", "feature.beta", "olo.region" ],
+      "coreRegionConfigKeys" : [ ],
+      "coreTenantIds" : [ ],
+      "coreResourceIds" : [ ],
+      "pipelineIds" : [ "us-east-pipeline-1", "us-east-pipeline-2" ],
+      "connectionIds" : [ ]
+    }
+  },
+  "globalContextTree" : {
+    "default" : {
+      "default-pipeline" : {
+        "pipelineId" : "default-pipeline",
+        "version" : 1,
+        "checksum" : "f263d34b194a2431172dcdef16c148365fe390a6551f197d2d07fae138b78524",
+        "compiledPipeline" : {
+          "id" : "default-pipeline",
+          "inputContract" : {
+            "strict" : false,
+            "parameters" : [ ]
+          },
+          "outputContract" : {
+            "parameters" : [ ]
+          },
+          "resultMapping" : { },
+          "executionType" : "SYNC",
+          "variableRegistry" : [ ],
+          "scope" : {
+            "plugins" : {
+              "features" : [ ],
+              "plugins" : [ ]
+            },
+            "features" : [ ]
+          },
+          "executionTree" : {
+            "id" : "root",
+            "type" : "SEQUENCE",
+            "name" : "Pipeline"
+          }
+        }
+      },
+      "default-pipeline-2" : {
+        "pipelineId" : "default-pipeline-2",
+        "version" : 1,
+        "checksum" : "b0edaec62d2b7f599edaffd8fcd598c88d707e5b73b2935ac2808038980d50ac",
+        "compiledPipeline" : {
+          "id" : "default-pipeline-2",
+          "inputContract" : {
+            "strict" : false,
+            "parameters" : [ ]
+          },
+          "outputContract" : {
+            "parameters" : [ ]
+          },
+          "resultMapping" : { },
+          "executionType" : "SYNC",
+          "variableRegistry" : [ ],
+          "scope" : {
+            "plugins" : {
+              "features" : [ ],
+              "plugins" : [ ]
+            },
+            "features" : [ ]
+          },
+          "executionTree" : {
+            "id" : "root",
+            "type" : "SEQUENCE",
+            "name" : "Pipeline2"
+          }
+        }
+      }
+    },
+    "us-east" : {
+      "us-east-pipeline-1" : {
+        "pipelineId" : "us-east-pipeline-1",
+        "version" : 1,
+        "checksum" : "db33d2e441ddabc84436f4488c4e6e415683b8ca0839807c662f1db9b5777548",
+        "compiledPipeline" : {
+          "id" : "us-east-pipeline-1",
+          "inputContract" : {
+            "strict" : false,
+            "parameters" : [ ]
+          },
+          "outputContract" : {
+            "parameters" : [ ]
+          },
+          "resultMapping" : { },
+          "executionType" : "SYNC",
+          "variableRegistry" : [ ],
+          "scope" : {
+            "plugins" : {
+              "features" : [ ],
+              "plugins" : [ ]
+            },
+            "features" : [ ]
+          },
+          "executionTree" : {
+            "id" : "root",
+            "type" : "SEQUENCE",
+            "name" : "UsEast1"
+          }
+        }
+      },
+      "us-east-pipeline-2" : {
+        "pipelineId" : "us-east-pipeline-2",
+        "version" : 1,
+        "checksum" : "40f972d5bcab062286733a210ccd46235a355b5b85557a31dd64201c118aba6a",
+        "compiledPipeline" : {
+          "id" : "us-east-pipeline-2",
+          "inputContract" : {
+            "strict" : false,
+            "parameters" : [ ]
+          },
+          "outputContract" : {
+            "parameters" : [ ]
+          },
+          "resultMapping" : { },
+          "executionType" : "SYNC",
+          "variableRegistry" : [ ],
+          "scope" : {
+            "plugins" : {
+              "features" : [ ],
+              "plugins" : [ ]
+            },
+            "features" : [ ]
+          },
+          "executionTree" : {
+            "id" : "root",
+            "type" : "SEQUENCE",
+            "name" : "UsEast2"
+          }
+        }
+      }
+    }
+  }
+}
+

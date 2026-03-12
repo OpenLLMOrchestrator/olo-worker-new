@@ -6,7 +6,6 @@ import java.util.Map;
 
 /**
  * Resolves an {@link Input} to a string value based on its storage.
- * Supports resource-based storage (type + resource + key) and legacy (mode + provider + key).
  * LOCAL is supported; CACHE, FILE, S3 require external resolution (e.g. in activities).
  */
 public final class InputResolver {
@@ -28,37 +27,33 @@ public final class InputResolver {
     if (storage == null) {
       throw new IllegalStateException("Input storage is missing for input=" + input.getName());
     }
-    // Prefer type + resource; fallback to legacy mode
     String type = getString(storage, "type");
-    String mode = getString(storage, "mode");
-    String effective = type != null && !type.isBlank() ? type : mode;
+    if (type == null || type.isBlank()) {
+      throw new IllegalStateException("Input storage.type is missing for input=" + input.getName());
+    }
 
-    if ("LOCAL".equalsIgnoreCase(effective)) {
+    if ("LOCAL".equalsIgnoreCase(type)) {
       Object v = input.getValue();
       return v == null ? null : String.valueOf(v);
     }
 
-    if ("CACHE".equalsIgnoreCase(effective)) {
+    if ("CACHE".equalsIgnoreCase(type)) {
       String key = getString(storage, "key");
       String resource = getString(storage, "resource");
       throw new IllegalStateException("CACHE input resolution not implemented. resource=" + resource + " key=" + key);
     }
 
-    if ("FILE".equalsIgnoreCase(effective)) {
+    if ("FILE".equalsIgnoreCase(type)) {
       String path = getString(storage, "path");
       String resource = getString(storage, "resource");
       throw new IllegalStateException("FILE input resolution not implemented. resource=" + resource + " path=" + path);
     }
 
-    if ("S3".equalsIgnoreCase(effective)) {
+    if ("S3".equalsIgnoreCase(type)) {
       throw new IllegalStateException("S3 input resolution not implemented");
     }
 
-    if (effective == null || effective.isBlank()) {
-      throw new IllegalStateException("Input storage.type (or mode) is missing for input=" + input.getName());
-    }
-
-    throw new IllegalStateException("Unsupported input storage type=" + effective + " for input=" + input.getName());
+    throw new IllegalStateException("Unsupported input storage type=" + type + " for input=" + input.getName());
   }
 
   private static String getString(Map<String, Object> map, String key) {

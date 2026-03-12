@@ -11,8 +11,10 @@ import java.util.stream.Collectors;
  */
 public final class Regions {
 
-  /** Config key for comma-separated list of regions. */
+  /** Legacy config key for comma-separated list of regions (kept for backward compatibility). */
   public static final String CONFIG_KEY = "olo.region";
+  /** Preferred config key for comma-separated list of regions. */
+  public static final String CONFIG_KEY_LIST = "olo.regions";
 
   /** Default region when not configured. */
   public static final String DEFAULT_REGION = "default";
@@ -25,6 +27,11 @@ public final class Regions {
   public static String getRegionList(Configuration config) {
     if (config == null) {
       return DEFAULT_REGION;
+    }
+    // Prefer new key (olo.regions); fall back to legacy (olo.region) to remain backward compatible.
+    String list = config.get(CONFIG_KEY_LIST, "").trim();
+    if (!list.isEmpty()) {
+      return list;
     }
     String v = config.get(CONFIG_KEY, DEFAULT_REGION);
     return v != null ? v.trim() : DEFAULT_REGION;

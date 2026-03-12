@@ -32,6 +32,8 @@ public final class ExecutionTreeNode {
   private final List<String> finallyExecution;
   private final List<String> features;
   private final Map<String, String> connections;
+  /** When set (e.g. on root node), restricts which tenant IDs may run this pipeline. Empty = all tenants in region. */
+  private final List<String> allowedTenantIds;
 
   private ExecutionTreeNode(Builder b) {
     this.id = b.id;
@@ -52,6 +54,7 @@ public final class ExecutionTreeNode {
     this.finallyExecution = b.finallyExecution == null ? List.of() : List.copyOf(b.finallyExecution);
     this.features = b.features == null ? List.of() : List.copyOf(b.features);
     this.connections = b.connections == null ? Map.of() : Map.copyOf(b.connections);
+    this.allowedTenantIds = b.allowedTenantIds == null ? List.of() : List.copyOf(b.allowedTenantIds);
   }
 
   public String getId() { return id; }
@@ -80,6 +83,8 @@ public final class ExecutionTreeNode {
   public List<String> getFeatures() { return features; }
   /** Logical connection names by role (e.g. "model" -> "gpt4-prod"). Resolved at execution time. */
   public Map<String, String> getConnections() { return connections; }
+  /** Tenant IDs allowed to run this (node/pipeline). Empty = no restriction. Typically set on root only. */
+  public List<String> getAllowedTenantIds() { return allowedTenantIds; }
 
   public static Builder builder(String id, NodeType type) {
     return new Builder(id, type);
@@ -104,6 +109,7 @@ public final class ExecutionTreeNode {
     private List<String> finallyExecution;
     private List<String> features;
     private Map<String, String> connections;
+    private List<String> allowedTenantIds;
 
     private Builder(String id, NodeType type) {
       this.id = id;
@@ -148,6 +154,10 @@ public final class ExecutionTreeNode {
     }
     public Builder connections(Map<String, String> connections) {
       this.connections = connections;
+      return this;
+    }
+    public Builder allowedTenantIds(List<String> allowedTenantIds) {
+      this.allowedTenantIds = allowedTenantIds;
       return this;
     }
     public ExecutionTreeNode build() {

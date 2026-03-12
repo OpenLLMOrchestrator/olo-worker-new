@@ -45,13 +45,13 @@ class OloPayloadParserTest {
           {
             "name": "userQuery",
             "type": "STRING",
-            "storage": { "mode": "LOCAL" },
+            "storage": { "type": "LOCAL" },
             "value": "Explain microkernel architecture"
           },
           {
             "name": "greeting",
             "type": "STRING",
-            "storage": { "mode": "LOCAL" },
+            "storage": { "type": "LOCAL" },
             "value": "Hi!"
           },
           {
@@ -180,7 +180,7 @@ class OloPayloadParserTest {
     assertEquals("userQuery", first.getName());
     assertEquals("STRING", first.getType());
     assertNotNull(first.getStorage());
-    assertEquals("LOCAL", first.getStorage().get("mode"));
+    assertEquals("LOCAL", first.getStorage().get("type"));
     assertEquals("Explain microkernel architecture", first.getValue());
 
     assertEquals(first, req.getInput("userQuery"));
@@ -271,11 +271,6 @@ class OloPayloadParserTest {
     String json11 = "{\"schemaVersion\":\"1.1\",\"runId\":\"r\",\"tenantId\":\"t\",\"routing\":{\"pipeline\":\"p\"}}";
     OloWorkerRequest req11 = OloPayloadParser.parse(json11, VersionStrategy.defaultStrategy());
     assertEquals("1.1", req11.getSchemaVersion());
-
-    String jsonLegacyVersion = "{\"version\":\"1.0\",\"runId\":\"r\",\"tenantId\":\"t\",\"routing\":{\"pipeline\":\"p\",\"version\":\"1.0\"}}";
-    OloWorkerRequest reqLegacy = OloPayloadParser.parse(jsonLegacyVersion, VersionStrategy.defaultStrategy());
-    assertEquals("1.0", reqLegacy.getSchemaVersion());
-    assertEquals("1.0", reqLegacy.getRouting().getPipelineVersion());
 
     String jsonUnknown = "{\"schemaVersion\":\"2.0\",\"runId\":\"r\",\"tenantId\":\"t\",\"routing\":{\"pipeline\":\"p\"}}";
     assertThrows(IllegalArgumentException.class,

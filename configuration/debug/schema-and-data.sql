@@ -71,6 +71,10 @@ INSERT INTO olo_config_resource (resource_id, tenant_id, region, config_json) VA
     ('core:sample', 'tenant-a', 'us-east', '{
       "app": { "timeoutSecs": 10 }
     }'),
+    -- Region=default, additional tenant-specific override for tenant-a (example for config cache tenant overrides)
+    ('core:sample', 'tenant-a', 'default', '{
+      "feature": { "beta": true }
+    }'),
     -- Existing model example (global, default region)
     ('model:gpt4', '', 'default', '{"provider":"openai","model":"gpt-4"}');
 

@@ -1,11 +1,11 @@
 package com.olo.worker;
 
+import com.olo.bootstrap.loader.context.GlobalContext;
+import com.olo.bootstrap.loader.context.GlobalContextProvider;
 import com.olo.configuration.Bootstrap;
-import com.olo.configuration.Configuration;
 import com.olo.configuration.ConfigurationProvider;
 import com.olo.worker.cache.CachePortRegistrar;
 import com.olo.worker.db.DbPortRegistrar;
-import com.olo.worker.execution.ExecutionTreeRegistry;
 import com.olo.worker.workflow.InputResolverActivityImpl;
 import com.olo.worker.workflow.OloChatWorkflowImpl;
 import io.temporal.client.WorkflowClient;
@@ -19,20 +19,21 @@ public final class WorkerMain {
   public static void main(String[] args) {
     DbPortRegistrar.registerDefaults();
     CachePortRegistrar.registerDefaults();
+
+    GlobalContext globalContext = GlobalContextProvider.getGlobalContext();
+    // Whenever config is updated (bootstrap setSnapshotMap or refresh putComposite / Redis Pub/Sub),
+    // rebuild the execution tree cache for that region so runtime uses fully compiled trees with no JSON parsing.
+    ConfigurationProvider.addSnapshotChangeListener((region, composite) -> {
+      if (composite != null) {
+        globalContext.rebuildTreeForRegion(composite);
+      } else {
+        globalContext.removeTreeForRegion(region);
+      }
+    });
+
     // Only the loader touches Redis/DB; after bootstrap, runtime uses only in-memory config.
     Bootstrap.run();
-    Configuration config = ConfigurationProvider.require();
-
-    // Build initial execution tree cache for all loaded regions.
-    var snapshotMap = ConfigurationProvider.getSnapshotMap();
-    if (snapshotMap != null) {
-      snapshotMap.values().forEach(ExecutionTreeRegistry::rebuildForRegion);
-    } else {
-      var primary = ConfigurationProvider.getComposite();
-      if (primary != null) {
-        ExecutionTreeRegistry.rebuildForRegion(primary);
-      }
-    }
+    var config = globalContext.getConfig();
 
     String target = env("TEMPORAL_TARGET", config.get("olo.temporal.target", "localhost:7233"));
     String namespace = env("TEMPORAL_NAMESPACE", config.get("olo.temporal.namespace", "default"));

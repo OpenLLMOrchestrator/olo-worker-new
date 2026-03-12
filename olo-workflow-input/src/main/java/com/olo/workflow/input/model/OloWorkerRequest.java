@@ -1,6 +1,5 @@
 package com.olo.workflow.input.model;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Builder;
 import lombok.Value;
 import lombok.extern.jackson.Jacksonized;
@@ -19,7 +18,6 @@ import java.util.Map;
 @Jacksonized
 public class OloWorkerRequest {
   /** Payload schema version (e.g. "1.0", "1.1"). Distinct from routing.pipelineVersion. */
-  @JsonAlias("version")
   String schemaVersion;
   String runId;
   /** API-level request id (e.g. from gateway); used for logs and metrics. */

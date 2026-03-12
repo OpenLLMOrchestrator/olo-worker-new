@@ -20,6 +20,7 @@ public final class ExecutionTreeCompiler {
   private static final String KEY_ID = "id";
   private static final String KEY_TYPE = "type";
   private static final String KEY_NAME = "name";
+  private static final String KEY_DISPLAY_NAME = "displayName";
   private static final String KEY_VERSION = "version";
   private static final String KEY_CHILDREN = "children";
   private static final String KEY_PARAMS = "params";
@@ -35,12 +36,22 @@ public final class ExecutionTreeCompiler {
   private static final String KEY_POST_ERROR = "postErrorExecution";
   private static final String KEY_FINALLY = "finallyExecution";
   private static final String KEY_FEATURES = "features";
+  private static final String KEY_ALLOWED_TENANT_IDS = "allowedTenantIds";
 
   /**
    * Builds an ExecutionTreeNode from a map (e.g. parsed from executionTree JSON).
    */
   @SuppressWarnings("unchecked")
   public static ExecutionTreeNode compileNode(Map<String, Object> nodeMap) {
+    return compileNode(nodeMap, null);
+  }
+
+  /**
+   * Builds an ExecutionTreeNode from a map, with optional pipeline-level allowed tenant IDs
+   * (applied to the root when provided; also read from node map if present).
+   */
+  @SuppressWarnings("unchecked")
+  public static ExecutionTreeNode compileNode(Map<String, Object> nodeMap, List<String> pipelineAllowedTenantIds) {
     String id = string(nodeMap, KEY_ID, "node");
     String typeStr = string(nodeMap, KEY_TYPE, "SEQUENCE");
     NodeType type = parseNodeType(typeStr);
@@ -48,6 +59,7 @@ public final class ExecutionTreeCompiler {
     ExecutionTreeNode.Builder builder = ExecutionTreeNode.builder(id, type);
 
     String name = string(nodeMap, KEY_NAME, null);
+    if (name == null) name = string(nodeMap, KEY_DISPLAY_NAME, null);
     if (name != null) builder.name(name);
     String version = string(nodeMap, KEY_VERSION, null);
     if (version != null) builder.version(version);
@@ -87,6 +99,11 @@ public final class ExecutionTreeCompiler {
     list(nodeMap, KEY_POST_ERROR).ifPresent(builder::postErrorExecution);
     list(nodeMap, KEY_FINALLY).ifPresent(builder::finallyExecution);
     list(nodeMap, KEY_FEATURES).ifPresent(builder::features);
+
+    List<String> allowedTenantIds = list(nodeMap, KEY_ALLOWED_TENANT_IDS).orElse(pipelineAllowedTenantIds);
+    if (allowedTenantIds != null && !allowedTenantIds.isEmpty()) {
+      builder.allowedTenantIds(allowedTenantIds);
+    }
     return builder.build();
   }
 
@@ -120,6 +137,7 @@ public final class ExecutionTreeCompiler {
     if (!node.getPostErrorExecution().isEmpty()) out.put(KEY_POST_ERROR, new ArrayList<>(node.getPostErrorExecution()));
     if (!node.getFinallyExecution().isEmpty()) out.put(KEY_FINALLY, new ArrayList<>(node.getFinallyExecution()));
     if (!node.getFeatures().isEmpty()) out.put(KEY_FEATURES, new ArrayList<>(node.getFeatures()));
+    if (!node.getAllowedTenantIds().isEmpty()) out.put(KEY_ALLOWED_TENANT_IDS, new ArrayList<>(node.getAllowedTenantIds()));
     return out;
   }
 

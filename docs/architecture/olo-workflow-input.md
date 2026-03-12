@@ -140,7 +140,7 @@ flowchart LR
 ```json
 {
   "version": "1.0",
-  "runId": "953a8f7f-0a3c-4078-aa2c-6970291f8fbd",
+  "runId": "953a8f7f-0a3c-4078-aa2c-6970291f8fbd",  
   "requestId": "req-abc-123",
   "tenantId": "2a2a91fb-f5b4-4cf0-b917-524d242b2e3d",
   "trace": {
@@ -149,6 +149,7 @@ flowchart LR
     "parentSpanId": ""
   },
   "routing": {
+    "region": "default",
     "pipeline": "olo-chat-queue-ollama",
     "transactionType": "QUESTION_ANSWER",
     "version": "1.0"

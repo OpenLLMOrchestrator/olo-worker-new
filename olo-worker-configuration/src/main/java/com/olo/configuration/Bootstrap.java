@@ -6,6 +6,7 @@ import com.olo.configuration.impl.refresh.ConfigRefreshScheduler;
 import com.olo.configuration.impl.refresh.RedisSnapshotLoader;
 import com.olo.configuration.impl.snapshot.ConfigSnapshotBuilder;
 import com.olo.configuration.impl.snapshot.PipelineSectionBuilder;
+import com.olo.configuration.impl.snapshot.TenantOverridesSectionBuilder;
 import com.olo.configuration.port.CacheConnectionSettings;
 import com.olo.configuration.port.ConfigChangeSubscriber;
 import com.olo.configuration.port.ConfigurationPortRegistry;
@@ -64,9 +65,12 @@ public final class Bootstrap {
   public static final String DEFAULT_CONFIG_REFRESH_PUBSUB_CHANNEL_PREFIX = "";
 
   /**
-   * Runs full bootstrap. When Redis is configured: wait for Redis and load snapshot; if snapshot is missing and DB is configured,
-   * build snapshot from DB and store in Redis, then load. When Redis is not configured: load defaults + env only.
-   * Then tenant→region; optional config refresh and tenant-region refresh.
+   * Runs full bootstrap. Sequence:
+   * <ol>
+   *   <li>Tenant/region: try Redis first; if not available, build Redis cache from DB config, then consume (so tenant/region data exists in Redis before use).</li>
+   *   <li>Config snapshot: when Redis is configured, wait for Redis and load snapshot; if snapshot is missing and DB is configured, build from DB and store in Redis, then load. When Redis is not configured: load defaults + env only.</li>
+   *   <li>Optional config refresh and tenant-region refresh schedulers.</li>
+   * </ol>
    */
   public static void run(boolean startRefreshScheduler) {
     Map<String, String> minimal = loadDefaultsAndEnvOnly();
@@ -79,14 +83,19 @@ public final class Bootstrap {
       }
     }
 
+    // Tenant/region: try Redis first; if not available, build Redis cache from DB config, then consume. Do this before config snapshot so Redis has tenant/region data before use.
+    if (conn.hasRedis() || conn.hasDb()) {
+      TenantRegionResolver.loadFrom(new DefaultConfiguration(minimal));
+    }
+
     if (conn.hasRedis()) {
       runWithSnapshot(conn, minimal);
     } else {
       ConfigurationProvider.set(new DefaultConfiguration(minimal));
+      ConfigurationProvider.setConfiguredRegions(new ArrayList<>(Regions.getRegions(new DefaultConfiguration(minimal))));
     }
 
     Configuration config = ConfigurationProvider.require();
-    TenantRegionResolver.loadFrom(config);
 
     boolean pubSubEnabled = conn.hasRedis() && config.getBoolean(CONFIG_REFRESH_PUBSUB_ENABLED_KEY, true);
     boolean periodicRefreshEnabled = startRefreshScheduler || config.getBoolean(CONFIG_REFRESH_ENABLED_KEY, false);
@@ -176,7 +185,15 @@ public final class Bootstrap {
   }
 
   static ConnectionConfig buildConnectionConfig(Map<String, String> m) {
-    String region = get(m, "olo.region", "default");
+    String region = get(m, "olo.regions", "").trim();
+    if (region.isEmpty()) {
+      region = get(m, "olo.region", "default");
+    } else {
+      int comma = region.indexOf(',');
+      region = comma > 0 ? region.substring(0, comma).trim() : region;
+      if (region.isEmpty()) region = Regions.DEFAULT_REGION;
+    }
+    if (region.isEmpty()) region = Regions.DEFAULT_REGION;
     String redisUri = get(m, "olo.redis.uri", "");
     if (redisUri.isEmpty()) {
       String host = get(m, "olo.redis.host", "");
@@ -218,13 +235,26 @@ public final class Bootstrap {
         throw new IllegalStateException("Snapshot store factory returned null store");
       }
       configSnapshotStore = store;
-      // Load worker region first so we have config (e.g. region list)
+      // Served regions from worker config only (defaults + env), so execution trees are maintained for configured regions only.
+      List<String> servedRegionsList = Regions.getRegions(new DefaultConfiguration(minimal));
+      ConfigurationProvider.setConfiguredRegions(servedRegionsList);
+      Set<String> servedRegions = new HashSet<>(servedRegionsList);
+      // Load worker region first so we have config for runtime
       RedisSnapshotLoader.load(conn.getRegion(), store);
       Configuration config = ConfigurationProvider.get();
       if (config == null) {
         throw new IllegalStateException("Configuration not set after loading worker region");
       }
-      Set<String> servedRegions = new HashSet<>(Regions.getRegions(config));
+      // Backfill pipelines (and thus keys olo:config:pipelines:<region>) for any served region missing from Redis
+      if (conn.hasDb()) {
+        PipelineSectionBuilder pb = new PipelineSectionBuilder(
+            conn.getJdbcUrl(), conn.getDbUsername(), conn.getDbPassword(), store);
+        for (String region : servedRegions) {
+          if (store.getPipelines(region) == null) {
+            pb.buildAndStore(region);
+          }
+        }
+      }
       Map<String, CompositeConfigurationSnapshot> snapshotMap = new LinkedHashMap<>();
       CompositeConfigurationSnapshot workerComposite = ConfigurationProvider.getComposite();
       if (workerComposite != null) {
@@ -306,11 +336,14 @@ public final class Bootstrap {
                 conn.getJdbcUrl(), conn.getDbUsername(), conn.getDbPassword(), conn.getDbPoolSize());
             ConfigSnapshotBuilder builder = new ConfigSnapshotBuilder(dbSettings, store);
             if (builder.buildAndStore(region) != null) {
-              // After core snapshot is built, ensure pipelines section is also present in Redis.
-              // Pipelines must be consumed from Redis; on miss, backfill from DB.
+              // After core snapshot is built, ensure pipelines section and tenant overrides cache are also present in Redis.
+              // Pipelines must be consumed from Redis; tenant overrides are cached for workers.
               PipelineSectionBuilder pb = new PipelineSectionBuilder(
                   conn.getJdbcUrl(), conn.getDbUsername(), conn.getDbPassword(), store);
               pb.buildAndStore(region);
+              TenantOverridesSectionBuilder tob = new TenantOverridesSectionBuilder(
+                  conn.getJdbcUrl(), conn.getDbUsername(), conn.getDbPassword(), store);
+              tob.buildAndStoreAllTenants();
               closeIfNeeded(store);
               log.info("Configuration snapshot for region={} built from DB and stored in Redis", region);
               return;

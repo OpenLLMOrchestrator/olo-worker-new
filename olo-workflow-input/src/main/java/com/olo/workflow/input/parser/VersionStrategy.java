@@ -11,7 +11,7 @@ public interface VersionStrategy {
   /**
    * Returns the class to deserialize into for the given schema version string.
    *
-   * @param schemaVersion the "schemaVersion" (or "version") field from the payload (may be null or blank)
+   * @param schemaVersion the "schemaVersion" field from the payload (may be null or blank)
    * @return the request type for that version
    * @throws IllegalArgumentException if the version is not supported
    */

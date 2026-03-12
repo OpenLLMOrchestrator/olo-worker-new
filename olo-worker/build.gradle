@@ -3,11 +3,11 @@ plugins {
 }
 
 dependencies {
+  implementation project(":olo-worker-bootstrap-loader")
   implementation project(":olo-worker-configuration")
   implementation project(":olo-worker-db")
   implementation project(":olo-worker-cache")
   implementation project(":olo-workflow-input")
-  implementation project(":olo-execution-tree")
 
   implementation "io.temporal:temporal-sdk:1.30.0"
   implementation "org.slf4j:slf4j-simple:2.0.16"
@@ -60,5 +60,8 @@ tasks.named("run", JavaExec).configure {
   if (project.hasProperty("appMain")) {
     mainClass = project.property("appMain").toString()
   }
+  // Force a valid IANA timezone so Postgres accepts the TimeZone parameter.
+  // "Asia/Calcutta" is rejected by the driver/server; use "Asia/Kolkata" instead.
+  jvmArgs "-Duser.timezone=Asia/Kolkata"
 }
 

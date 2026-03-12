@@ -25,7 +25,7 @@ public final class OloPayloadParser {
 
   /**
    * Deserialize JSON using the given version strategy.
-   * The "schemaVersion" (or legacy "version") field selects the request type (e.g. 1.0, 1.1).
+   * The "schemaVersion" field selects the request type (e.g. 1.0, 1.1).
    */
   public static OloWorkerRequest parse(String json, VersionStrategy versionStrategy) {
     if (json == null || json.isBlank()) {
@@ -37,9 +37,6 @@ public final class OloPayloadParser {
     try {
       JsonNode root = MAPPER.readTree(json);
       String schemaVersion = root.has("schemaVersion") ? root.path("schemaVersion").asText(null) : null;
-      if (schemaVersion == null || schemaVersion.isBlank()) {
-        schemaVersion = root.has("version") ? root.path("version").asText(null) : null;
-      }
       Class<? extends OloWorkerRequest> type = versionStrategy.requestTypeForVersion(schemaVersion);
       return MAPPER.treeToValue(root, type);
     } catch (JsonProcessingException e) {

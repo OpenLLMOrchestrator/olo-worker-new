@@ -50,8 +50,8 @@ INSERT INTO olo_config_resource (resource_id, tenant_id, region, config_json) VA
     ('core:sample', 'tenant-a', 'us-east', '{
       "app": { "timeoutSecs": 10 }
     }'),
-    -- Minimal example used in docs: region id only
-    ('olo.region', '', 'default', '{"olo.region":"default"}')
+    -- Primary region and served regions (comma-separated) so bootstrap creates olo:config:pipelines:<region> for each
+    ('olo.region', '', 'default', '{"olo.region":"default,us-east,eu-west"}')
 ON CONFLICT (resource_id, tenant_id, region) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -92,14 +92,102 @@ ON olo_tenant_pipeline_override(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_olo_tenant_pipeline_override_pipeline
 ON olo_tenant_pipeline_override(pipeline_id, pipeline_version);
 
--- Default region: default-pipeline (bootstrap default)
+-- Reset sample pipelines so inserts below always reflect current IDs, even on rerun.
+DELETE FROM olo_pipeline_template WHERE region IN ('default', 'us-east', 'eu-west');
+DELETE FROM olo_tenant_pipeline_override;
+
+-- Default region: two sample pipelines
 INSERT INTO olo_pipeline_template (region, pipeline_id, version, is_active, tree_json, updated_at)
-VALUES (
-  'default',
-  'default-pipeline',
-  1,
-  true,
-  '{"id":"default-pipeline","name":"default-pipeline","version":1,"workflowId":"default","description":"Bootstrap default pipeline","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"Pipeline","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[]}'::jsonb,
-  CURRENT_TIMESTAMP
-)
+VALUES
+  (
+    'default',
+    'olo.default.default-pipeline',
+    1,
+    true,
+    '{"id":"default-pipeline","name":"default-pipeline","version":1,"workflowId":"default","description":"Bootstrap default pipeline","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"Pipeline","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-a"]}'::jsonb,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'default',
+    'olo.default.default-pipeline-2',
+    1,
+    true,
+    '{"id":"default-pipeline-2","name":"default-pipeline-2","version":1,"workflowId":"default-2","description":"Second default pipeline for testing","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"Pipeline2","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-a"]}'::jsonb,
+    CURRENT_TIMESTAMP
+  )
 ON CONFLICT (region, pipeline_id, version) DO NOTHING;
+
+-- us-east region: two sample pipelines
+INSERT INTO olo_pipeline_template (region, pipeline_id, version, is_active, tree_json, updated_at)
+VALUES
+  (
+    'us-east',
+    'olo.us-east.us-east-pipeline-1',
+    1,
+    true,
+    '{"id":"us-east-pipeline-1","name":"us-east-pipeline-1","version":1,"workflowId":"us-east-1","description":"us-east sample pipeline 1","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"UsEast1","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-b"]}'::jsonb,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'us-east',
+    'olo.us-east.us-east-pipeline-2',
+    1,
+    true,
+    '{"id":"us-east-pipeline-2","name":"us-east-pipeline-2","version":1,"workflowId":"us-east-2","description":"us-east sample pipeline 2","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"UsEast2","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-b"]}'::jsonb,
+    CURRENT_TIMESTAMP
+  )
+ON CONFLICT (region, pipeline_id, version) DO NOTHING;
+
+-- eu-west region: two sample pipelines
+INSERT INTO olo_pipeline_template (region, pipeline_id, version, is_active, tree_json, updated_at)
+VALUES
+  (
+    'eu-west',
+    'olo.eu-west.eu-west-pipeline-1',
+    1,
+    true,
+    '{"id":"eu-west-pipeline-1","name":"eu-west-pipeline-1","version":1,"workflowId":"eu-west-1","description":"eu-west sample pipeline 1","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"EuWest1","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-c"]}'::jsonb,
+    CURRENT_TIMESTAMP
+  ),
+  (
+    'eu-west',
+    'olo.eu-west.eu-west-pipeline-2',
+    1,
+    true,
+    '{"id":"eu-west-pipeline-2","name":"eu-west-pipeline-2","version":1,"workflowId":"eu-west-2","description":"eu-west sample pipeline 2","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"EuWest2","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-c"]}'::jsonb,
+    CURRENT_TIMESTAMP
+  )
+ON CONFLICT (region, pipeline_id, version) DO NOTHING;
+
+-- ---------------------------------------------------------------------------
+-- 4. Capabilities (global, region, tenant)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS olo_capabilities (
+    scope      VARCHAR(16)  NOT NULL,
+    tenant_id  VARCHAR(64)  NOT NULL DEFAULT '',
+    region     VARCHAR(64)  NOT NULL DEFAULT 'default',
+    plugins    JSONB        NOT NULL,
+    features   JSONB        NOT NULL,
+    updated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (scope, tenant_id, region)
+);
+
+CREATE INDEX IF NOT EXISTS idx_olo_capabilities_scope
+ON olo_capabilities(scope);
+
+CREATE INDEX IF NOT EXISTS idx_olo_capabilities_region
+ON olo_capabilities(region);
+
+CREATE INDEX IF NOT EXISTS idx_olo_capabilities_tenant
+ON olo_capabilities(tenant_id);
+
+-- Sample capabilities matching the debug JSON shape.
+INSERT INTO olo_capabilities (scope, tenant_id, region, plugins, features) VALUES
+    -- Global capabilities (environment-wide defaults)
+    ('GLOBAL', '', 'default', '["http"]'::jsonb, '["retry"]'::jsonb),
+    -- Region-level capabilities
+    ('REGION', '', 'us-east', '["http","sql"]'::jsonb, '["retry","circuitBreaker"]'::jsonb),
+    -- Tenant-level capabilities
+    ('TENANT', 'tenant-a', 'default', '["http"]'::jsonb, '["retry"]'::jsonb),
+    ('TENANT', 'tenant-b', 'us-east', '["http","sql"]'::jsonb, '["retry","circuitBreaker"]'::jsonb)
+ON CONFLICT (scope, tenant_id, region) DO NOTHING;
