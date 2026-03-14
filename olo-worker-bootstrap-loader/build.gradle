@@ -2,6 +2,8 @@ dependencies {
   implementation project(":olo-worker-bootstrap-runtime")
   implementation project(":olo-worker-configuration")
   implementation project(":olo-execution-tree")
+  implementation project(":olo-worker-features")
+  implementation project(":olo-worker-plugin")
 
   implementation "org.slf4j:slf4j-api:2.0.16"
   implementation "com.fasterxml.jackson.core:jackson-databind:2.17.2"

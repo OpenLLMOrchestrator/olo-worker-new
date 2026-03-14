@@ -20,8 +20,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Immutable, per-region cache of compiled execution trees. Internal to the loader;
- * access is via {@link com.olo.bootstrap.loader.context.GlobalContext}.
+ * Immutable, per-region cache of compiled execution trees. Structure: region → pipelineId → version → CompiledPipeline.
+ * Lookup via {@link #get(String, String, Long)}; version == null means latest (max version).
+ * Internal to the loader; access is via {@link com.olo.bootstrap.loader.context.GlobalContext}.
  */
 public final class ExecutionTreeRegistry {
 
@@ -29,25 +30,31 @@ public final class ExecutionTreeRegistry {
   private static final ObjectMapper MAPPER = new ObjectMapper();
 
   private static volatile Map<String, CompiledPipeline> compiledByChecksum = Map.of();
-  /** Region → pipelineId → compiled pipeline (fast lookup cache). */
-  private static volatile Map<String, Map<String, CompiledPipeline>> byRegion = Map.of();
+  /** Region → pipelineId → version → CompiledPipeline. */
+  private static volatile Map<String, Map<String, Map<Long, CompiledPipeline>>> byRegion = Map.of();
 
   private ExecutionTreeRegistry() {}
 
-  static CompiledPipeline get(String region, String pipelineId) {
+  /**
+   * Returns the compiled pipeline for region + pipelineId + version. When version is null, returns the latest (max version).
+   */
+  static CompiledPipeline get(String region, String pipelineId, Long version) {
     if (region == null || pipelineId == null) return null;
-    Map<String, Map<String, CompiledPipeline>> snapshot = byRegion;
-    Map<String, CompiledPipeline> regionMap = snapshot.get(region);
+    Map<String, Map<String, Map<Long, CompiledPipeline>>> snapshot = byRegion;
+    Map<String, Map<Long, CompiledPipeline>> regionMap = snapshot.get(region);
     if (regionMap == null) return null;
-    return regionMap.get(pipelineId);
+    Map<Long, CompiledPipeline> byVersion = regionMap.get(pipelineId);
+    if (byVersion == null || byVersion.isEmpty()) return null;
+    if (version != null) return byVersion.get(version);
+    return byVersion.entrySet().stream().max(Map.Entry.comparingByKey()).map(Map.Entry::getValue).orElse(null);
   }
 
   static void removeRegion(String region) {
     if (region == null || region.isEmpty()) return;
-    Map<String, Map<String, CompiledPipeline>> currentByRegion = byRegion;
+    Map<String, Map<String, Map<Long, CompiledPipeline>>> currentByRegion = byRegion;
     if (!currentByRegion.containsKey(region)) return;
 
-    Map<String, Map<String, CompiledPipeline>> nextByRegion = new LinkedHashMap<>(currentByRegion);
+    Map<String, Map<String, Map<Long, CompiledPipeline>>> nextByRegion = new LinkedHashMap<>(currentByRegion);
     nextByRegion.remove(region);
     byRegion = Map.copyOf(nextByRegion);
     log.info("Removed execution tree cache for region={}", region);
@@ -61,9 +68,9 @@ public final class ExecutionTreeRegistry {
     if (pipelines == null || pipelines.isEmpty()) pipelines = Map.of();
 
     Map<String, CompiledPipeline> currentCompiledByChecksum = compiledByChecksum;
-    Map<String, Map<String, CompiledPipeline>> currentByRegion = byRegion;
+    Map<String, Map<String, Map<Long, CompiledPipeline>>> currentByRegion = byRegion;
 
-    Map<String, CompiledPipeline> newRegionMap = new LinkedHashMap<>();
+    Map<String, Map<Long, CompiledPipeline>> newRegionMap = new LinkedHashMap<>();
     Map<String, CompiledPipeline> newCompiledByChecksum = new LinkedHashMap<>(currentCompiledByChecksum);
 
     for (Map.Entry<String, Object> e : pipelines.entrySet()) {
@@ -86,11 +93,11 @@ public final class ExecutionTreeRegistry {
       }
       try {
         String checksum = sha256(MAPPER.writeValueAsString(root));
+        long version = root.get("version") instanceof Number
+            ? ((Number) root.get("version")).longValue() : 0L;
+
         CompiledPipeline compiled = newCompiledByChecksum.get(checksum);
         if (compiled == null) {
-          long version = root.get("version") instanceof Number
-              ? ((Number) root.get("version")).longValue() : 0L;
-
           Map<String, Object> inputContract = root.get("inputContract") instanceof Map
               ? (Map<String, Object>) root.get("inputContract") : Map.of();
           Map<String, Object> outputContract = root.get("outputContract") instanceof Map
@@ -113,6 +120,22 @@ public final class ExecutionTreeRegistry {
           List<String> allowedTenantIds = toAllowedTenantIds(root.get("allowedTenantIds"));
           ExecutionTreeNode rootNode = ExecutionTreeCompiler.compileNode(treeMap, allowedTenantIds);
 
+          boolean debugPipeline = false;
+          Object debugFlag = root.get("isDebugPipeline");
+          if (debugFlag instanceof Boolean b) {
+            debugPipeline = b;
+          } else if (debugFlag != null) {
+            debugPipeline = Boolean.parseBoolean(debugFlag.toString());
+          }
+
+          boolean dynamicPipeline = false;
+          Object dynamicFlag = root.get("isDynamicPipeline");
+          if (dynamicFlag instanceof Boolean db) {
+            dynamicPipeline = db;
+          } else if (dynamicFlag != null) {
+            dynamicPipeline = Boolean.parseBoolean(dynamicFlag.toString());
+          }
+
           PipelineDefinition def = new PipelineDefinition(
               pipelineId,
               inputContract,
@@ -121,18 +144,24 @@ public final class ExecutionTreeRegistry {
               rootNode,
               outputContract,
               resultMapping,
-              "SYNC");
+              "SYNC",
+              debugPipeline,
+              dynamicPipeline);
           compiled = new CompiledPipeline(pipelineId, version, checksum, def);
           newCompiledByChecksum.put(checksum, compiled);
         }
-        newRegionMap.put(pipelineId, compiled);
+        newRegionMap.computeIfAbsent(pipelineId, k -> new LinkedHashMap<>()).put(version, compiled);
       } catch (Exception ex) {
         log.warn("Failed to compile pipeline for region={} pipelineId={}: {}", region, pipelineId, ex.getMessage());
       }
     }
 
-    Map<String, Map<String, CompiledPipeline>> newByRegion = new LinkedHashMap<>(currentByRegion);
-    newByRegion.put(region, Map.copyOf(newRegionMap));
+    Map<String, Map<String, Map<Long, CompiledPipeline>>> newByRegion = new LinkedHashMap<>(currentByRegion);
+    Map<String, Map<Long, CompiledPipeline>> immutableRegion = new LinkedHashMap<>();
+    for (Map.Entry<String, Map<Long, CompiledPipeline>> entry : newRegionMap.entrySet()) {
+      immutableRegion.put(entry.getKey(), Map.copyOf(entry.getValue()));
+    }
+    newByRegion.put(region, immutableRegion);
 
     compiledByChecksum = Map.copyOf(newCompiledByChecksum);
     byRegion = Map.copyOf(newByRegion);

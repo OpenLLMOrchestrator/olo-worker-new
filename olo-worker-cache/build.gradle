@@ -1,5 +1,6 @@
 dependencies {
   implementation project(":olo-worker-configuration")
+  implementation project(":olo-worker-input")
 
   implementation "org.slf4j:slf4j-api:2.0.16"
   implementation "io.lettuce:lettuce-core:6.4.0.RELEASE"

@@ -67,7 +67,10 @@ class BootstrapGlobalContextDumpTest {
       "generation",
       "lastUpdated",
       "updatedAt",
-      "updated_at"
+      "updated_at",
+      // New optional/debug-only fields we don't assert on structurally
+      "isDebugPipeline",
+      "isDynamicPipeline"
   ));
 
   @AfterEach
@@ -192,12 +195,12 @@ class BootstrapGlobalContextDumpTest {
       for (String f : toRemove) {
         obj.remove(f);
       }
-      // Normalize ordering for arrays where order is not semantically important.
+      // Normalize and canonicalize pipelineIds: drop queue prefixes and sort.
       if (obj.has("pipelineIds") && obj.get("pipelineIds").isArray()) {
         ArrayNode ids = (ArrayNode) obj.get("pipelineIds");
         java.util.List<String> values = new java.util.ArrayList<>();
         for (JsonNode idNode : ids) {
-          values.add(idNode.asText());
+          values.add(shortPipelineId(idNode.asText()));
         }
         java.util.Collections.sort(values);
         ArrayNode sorted = JSON_MAPPER.createArrayNode();
@@ -206,10 +209,63 @@ class BootstrapGlobalContextDumpTest {
         }
         obj.set("pipelineIds", sorted);
       }
+      // Canonicalize globalContextTree keys and nested pipeline ids so they don't depend on queue naming.
+      if (obj.has("globalContextTree") && obj.get("globalContextTree").isObject()) {
+        ObjectNode trees = (ObjectNode) obj.get("globalContextTree");
+        java.util.List<String> regionNames = new java.util.ArrayList<>();
+        trees.fieldNames().forEachRemaining(regionNames::add);
+        for (String region : regionNames) {
+          JsonNode regionNode = trees.get(region);
+          if (regionNode instanceof ObjectNode regionObj) {
+            normalizeRegionPipelines(regionObj);
+          }
+        }
+      }
     } else if (node.isArray()) {
       ArrayNode arr = (ArrayNode) node;
       for (JsonNode child : arr) {
         sanitize(child);
+      }
+    }
+  }
+
+  private static String shortPipelineId(String raw) {
+    if (raw == null) return null;
+    // Our new loader uses olo.<region>.<pipelineId>; keep only the last segment.
+    if (raw.startsWith("olo.")) {
+      int lastDot = raw.lastIndexOf('.');
+      if (lastDot != -1 && lastDot + 1 < raw.length()) {
+        return raw.substring(lastDot + 1);
+      }
+    }
+    return raw;
+  }
+
+  /** Normalizes keys and nested ids under a single region entry of globalContextTree. */
+  private static void normalizeRegionPipelines(ObjectNode regionObj) {
+    java.util.List<String> pipelineKeys = new java.util.ArrayList<>();
+    regionObj.fieldNames().forEachRemaining(pipelineKeys::add);
+    for (String key : pipelineKeys) {
+      JsonNode pipelineNode = regionObj.get(key);
+      if (!(pipelineNode instanceof ObjectNode pipelineObj)) continue;
+      String shortKey = shortPipelineId(key);
+      // Update pipelineId field if present
+      JsonNode pipelineIdNode = pipelineObj.get("pipelineId");
+      if (pipelineIdNode != null && pipelineIdNode.isTextual()) {
+        ((ObjectNode) pipelineObj).put("pipelineId", shortPipelineId(pipelineIdNode.asText()));
+      }
+      // Update compiledPipeline.id if present
+      JsonNode compiled = pipelineObj.get("compiledPipeline");
+      if (compiled instanceof ObjectNode compiledObj) {
+        JsonNode idNode = compiledObj.get("id");
+        if (idNode != null && idNode.isTextual()) {
+          compiledObj.put("id", shortPipelineId(idNode.asText()));
+        }
+      }
+      // If the key itself has a prefix, move it under the short key
+      if (!shortKey.equals(key)) {
+        regionObj.set(shortKey, pipelineObj);
+        regionObj.remove(key);
       }
     }
   }

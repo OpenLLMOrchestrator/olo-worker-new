@@ -94,7 +94,7 @@ public final class GlobalContextSerializerImpl implements GlobalContextSerialize
       Set<String> pipelineIds = composite.getPipelines().keySet();
       Map<String, Object> pipelines = new LinkedHashMap<>();
       for (String pipelineId : pipelineIds) {
-        CompiledPipeline compiled = context.getCompiledPipeline(region, pipelineId);
+        CompiledPipeline compiled = context.getCompiledPipeline(region, pipelineId, null);
         if (compiled == null) {
           pipelines.put(pipelineId, Map.of("present", false));
           continue;
@@ -121,13 +121,15 @@ public final class GlobalContextSerializerImpl implements GlobalContextSerialize
   private static Map<String, Object> compiledPipelineDefinitionToMap(PipelineDefinition def) {
     Map<String, Object> out = new LinkedHashMap<>();
     out.put("id", def.getName());
-    out.put("inputContract", def.getInputContract() != null ? def.getInputContract() : Map.<String, Object>of());
+    out.put("inputContract", def.getInputContractMap() != null ? def.getInputContractMap() : Map.<String, Object>of());
     out.put("outputContract", def.getOutputContract() != null ? def.getOutputContract() : Map.<String, Object>of());
-    out.put("resultMapping", def.getResultMapping() != null ? def.getResultMapping() : Map.<String, String>of());
-    out.put("executionType", def.getExecutionType() != null ? def.getExecutionType() : "SYNC");
-    out.put("variableRegistry", variableRegistryToJsonSafe(def.getVariableRegistry()));
+    out.put("resultMapping", def.getResultMappingMap() != null ? def.getResultMappingMap() : Map.<String, String>of());
+    out.put("executionType", def.getExecutionType() != null ? def.getExecutionType().name() : "SYNC");
+    out.put("variableRegistry", variableRegistryToJsonSafe(def.getVariableRegistryRaw()));
     out.put("scope", scopeToJsonSafe(def.getScope()));
-    out.put("executionTree", def.getExecutionTree() != null ? ExecutionTreeCompiler.toNodeMap(def.getExecutionTree()) : Map.<String, Object>of());
+    out.put("executionTree", def.getExecutionTreeRoot() != null ? ExecutionTreeCompiler.toNodeMap(def.getExecutionTreeRoot()) : Map.<String, Object>of());
+    out.put("isDebugPipeline", def.isDebugPipeline());
+    out.put("isDynamicPipeline", def.isDynamicPipeline());
     return out;
   }
 
@@ -154,7 +156,7 @@ public final class GlobalContextSerializerImpl implements GlobalContextSerialize
       return out;
     }
     out.put("plugins", scope.getPlugins() != null ? scope.getPlugins() : Map.of());
-    out.put("features", scope.getFeatures() != null ? new ArrayList<>(scope.getFeatures()) : List.of());
+    out.put("features", scope.getFeatures() != null ? scope.getFeatures().stream().map(f -> f != null ? f.getId() : null).filter(java.util.Objects::nonNull).collect(Collectors.toList()) : List.of());
     return out;
   }
 
@@ -209,7 +211,7 @@ public final class GlobalContextSerializerImpl implements GlobalContextSerialize
       List<String> plugins = new ArrayList<>();
       List<String> features = new ArrayList<>();
       for (String pipelineId : pipelineIds) {
-        CompiledPipeline compiled = context.getCompiledPipeline(region, pipelineId);
+        CompiledPipeline compiled = context.getCompiledPipeline(region, pipelineId, null);
         if (compiled == null || compiled.getDefinition() == null || compiled.getDefinition().getScope() == null) {
           continue;
         }
@@ -218,7 +220,7 @@ public final class GlobalContextSerializerImpl implements GlobalContextSerialize
           plugins.addAll(scope.getPlugins().keySet());
         }
         if (scope.getFeatures() != null) {
-          features.addAll(scope.getFeatures());
+          scope.getFeatures().stream().map(f -> f != null ? f.getId() : null).filter(java.util.Objects::nonNull).forEach(features::add);
         }
       }
       Map<String, Object> caps = new LinkedHashMap<>();

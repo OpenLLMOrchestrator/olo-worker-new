@@ -1,5 +1,6 @@
 package com.olo.executiontree;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -88,6 +89,37 @@ public final class ExecutionTreeNode {
 
   public static Builder builder(String id, NodeType type) {
     return new Builder(id, type);
+  }
+
+  /**
+   * Returns a deep copy of the tree rooted at {@code root}.
+   * Used when {@code isDynamicPipeline} is true so the run has its own mutable copy of the execution tree.
+   */
+  public static ExecutionTreeNode deepCopy(ExecutionTreeNode root) {
+    if (root == null) return null;
+    List<ExecutionTreeNode> childCopies = new ArrayList<>(root.getChildren().size());
+    for (ExecutionTreeNode child : root.getChildren()) {
+      childCopies.add(deepCopy(child));
+    }
+    return builder(root.getId(), root.getType())
+        .name(root.getName())
+        .version(root.getVersion())
+        .params(root.getParams())
+        .children(childCopies)
+        .inputMappings(root.getInputMappings())
+        .outputMappings(root.getOutputMappings())
+        .timeout(root.getTimeout())
+        .retryPolicy(root.getRetryPolicy())
+        .executionMode(root.getExecutionMode())
+        .metadata(root.getMetadata())
+        .preExecution(root.getPreExecution())
+        .postSuccessExecution(root.getPostSuccessExecution())
+        .postErrorExecution(root.getPostErrorExecution())
+        .finallyExecution(root.getFinallyExecution())
+        .features(root.getFeatures())
+        .connections(root.getConnections())
+        .allowedTenantIds(root.getAllowedTenantIds())
+        .build();
   }
 
   public static final class Builder {

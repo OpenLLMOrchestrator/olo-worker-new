@@ -19,7 +19,6 @@ This folder documents the **execution tree**: the declarative tree of nodes that
 - **ExecutionConfigSnapshot** — Immutable snapshot per run (tenantId, queueName, pipeline).
 - **VariableEngine**, **ExecutionContext** — Contracts for the execution layer.
 - **ExecutionTreeCompiler** — Compile config (e.g. JSON) into ExecutionTreeNode, VariableRegistry, Scope.
-- **ExecutionTreeBuilder** — Build ExecutionConfigSnapshot per tenant/queue from Configuration.
 
 ## Relationship to Bootstrap
 

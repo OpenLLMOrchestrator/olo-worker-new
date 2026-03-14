@@ -27,14 +27,16 @@ public interface GlobalContext {
   /** Tenant → region map as currently resolved in-memory. */
   Map<String, String> getTenantToRegionMap();
 
-  /** Compiled pipeline by explicit region + pipelineId. */
-  CompiledPipeline getCompiledPipeline(String region, String pipelineId);
+  /**
+   * Compiled pipeline by region + pipelineId + version. When version is null, returns latest (max version).
+   */
+  CompiledPipeline getCompiledPipeline(String region, String pipelineId, Long version);
 
   /**
-   * Compiled pipeline for tenant + pipelineId, resolving tenant's region.
-   * Falls back to primary region when tenant or region is unknown.
+   * Compiled pipeline for tenant + pipelineId + version, resolving tenant's region.
+   * When version is null, returns latest. Falls back to primary region when tenant or region is unknown.
    */
-  CompiledPipeline getCompiledPipelineForTenant(String tenantId, String pipelineId);
+  CompiledPipeline getCompiledPipelineForTenant(String tenantId, String pipelineId, Long version);
 
   /**
    * Rebuilds the execution tree cache for the given region from the composite snapshot.

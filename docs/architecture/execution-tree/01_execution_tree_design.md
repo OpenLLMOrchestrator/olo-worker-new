@@ -56,7 +56,7 @@ tenantId, runId, variableEngine, pluginRegistry, featureRegistry, tenantConfig, 
 
 ## Module (olo-execution-tree)
 
-ExecutionTreeNode, NodeType, ExecutionMode, VariableRegistry, VariableDeclaration, VariableScope, Scope, PipelineDefinition, CompiledPipeline, ExecutionConfigSnapshot, VariableEngine, ExecutionContext, ExecutionTreeCompiler, ExecutionTreeBuilder.
+ExecutionTreeNode, NodeType, ExecutionMode, VariableRegistry, VariableDeclaration, VariableScope, Scope, PipelineDefinition, CompiledPipeline, ExecutionConfigSnapshot, VariableEngine, ExecutionContext, ExecutionTreeCompiler.
 
 ## Runtime compiled pipeline cache (worker)
 

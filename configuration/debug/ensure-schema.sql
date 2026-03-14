@@ -104,7 +104,7 @@ VALUES
     'olo.default.default-pipeline',
     1,
     true,
-    '{"id":"default-pipeline","name":"default-pipeline","version":1,"workflowId":"default","description":"Bootstrap default pipeline","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"Pipeline","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-a"]}'::jsonb,
+    '{"id":"olo.default.default-pipeline","name":"olo.default.default-pipeline","version":1,"workflowId":"default","description":"Bootstrap default pipeline","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"Pipeline","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-a"],"isDebugPipeline":true,"isDynamicPipeline":true}'::jsonb,
     CURRENT_TIMESTAMP
   ),
   (
@@ -112,7 +112,7 @@ VALUES
     'olo.default.default-pipeline-2',
     1,
     true,
-    '{"id":"default-pipeline-2","name":"default-pipeline-2","version":1,"workflowId":"default-2","description":"Second default pipeline for testing","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"Pipeline2","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-a"]}'::jsonb,
+    '{"id":"olo.default.default-pipeline-2","name":"olo.default.default-pipeline-2","version":1,"workflowId":"default-2","description":"Second default pipeline for testing","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"Pipeline2","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-a"],"isDebugPipeline":false,"isDynamicPipeline":true}'::jsonb,
     CURRENT_TIMESTAMP
   )
 ON CONFLICT (region, pipeline_id, version) DO NOTHING;
@@ -125,7 +125,7 @@ VALUES
     'olo.us-east.us-east-pipeline-1',
     1,
     true,
-    '{"id":"us-east-pipeline-1","name":"us-east-pipeline-1","version":1,"workflowId":"us-east-1","description":"us-east sample pipeline 1","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"UsEast1","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-b"]}'::jsonb,
+    '{"id":"olo.us-east.us-east-pipeline-1","name":"olo.us-east.us-east-pipeline-1","version":1,"workflowId":"us-east-1","description":"us-east sample pipeline 1","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"UsEast1","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-b"],"isDebugPipeline":false,"isDynamicPipeline":true}'::jsonb,
     CURRENT_TIMESTAMP
   ),
   (
@@ -133,7 +133,7 @@ VALUES
     'olo.us-east.us-east-pipeline-2',
     1,
     true,
-    '{"id":"us-east-pipeline-2","name":"us-east-pipeline-2","version":1,"workflowId":"us-east-2","description":"us-east sample pipeline 2","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"UsEast2","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-b"]}'::jsonb,
+    '{"id":"olo.us-east.us-east-pipeline-2","name":"olo.us-east.us-east-pipeline-2","version":1,"workflowId":"us-east-2","description":"us-east sample pipeline 2","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"UsEast2","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-b"],"isDebugPipeline":false,"isDynamicPipeline":true}'::jsonb,
     CURRENT_TIMESTAMP
   )
 ON CONFLICT (region, pipeline_id, version) DO NOTHING;
@@ -146,7 +146,7 @@ VALUES
     'olo.eu-west.eu-west-pipeline-1',
     1,
     true,
-    '{"id":"eu-west-pipeline-1","name":"eu-west-pipeline-1","version":1,"workflowId":"eu-west-1","description":"eu-west sample pipeline 1","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"EuWest1","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-c"]}'::jsonb,
+    '{"id":"olo.eu-west.eu-west-pipeline-1","name":"olo.eu-west.eu-west-pipeline-1","version":1,"workflowId":"eu-west-1","description":"eu-west sample pipeline 1","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"EuWest1","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-c"],"isDebugPipeline":false,"isDynamicPipeline":true}'::jsonb,
     CURRENT_TIMESTAMP
   ),
   (
@@ -154,7 +154,7 @@ VALUES
     'olo.eu-west.eu-west-pipeline-2',
     1,
     true,
-    '{"id":"eu-west-pipeline-2","name":"eu-west-pipeline-2","version":1,"workflowId":"eu-west-2","description":"eu-west sample pipeline 2","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"EuWest2","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-c"]}'::jsonb,
+    '{"id":"olo.eu-west.eu-west-pipeline-2","name":"olo.eu-west.eu-west-pipeline-2","version":1,"workflowId":"eu-west-2","description":"eu-west sample pipeline 2","inputContract":{"strict":false,"parameters":[]},"variableRegistry":[],"scope":{"plugins":[],"features":[]},"executionTree":{"id":"root","displayName":"EuWest2","type":"SEQUENCE","children":[]},"outputContract":{"parameters":[]},"resultMapping":[],"allowedTenantIds":["tenant-c"],"isDebugPipeline":false,"isDynamicPipeline":true}'::jsonb,
     CURRENT_TIMESTAMP
   )
 ON CONFLICT (region, pipeline_id, version) DO NOTHING;

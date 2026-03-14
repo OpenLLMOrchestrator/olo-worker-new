@@ -38,16 +38,16 @@ public final class GlobalContextImpl implements GlobalContext {
   }
 
   @Override
-  public CompiledPipeline getCompiledPipeline(String region, String pipelineId) {
-    return ExecutionTreeRegistry.get(region, pipelineId);
+  public CompiledPipeline getCompiledPipeline(String region, String pipelineId, Long version) {
+    return ExecutionTreeRegistry.get(region, pipelineId, version);
   }
 
   @Override
-  public CompiledPipeline getCompiledPipelineForTenant(String tenantId, String pipelineId) {
+  public CompiledPipeline getCompiledPipelineForTenant(String tenantId, String pipelineId, Long version) {
     if (tenantId == null || tenantId.isBlank()) {
       CompositeConfigurationSnapshot primary = ConfigurationProvider.getComposite();
       if (primary == null) return null;
-      return ExecutionTreeRegistry.get(primary.getRegion(), pipelineId);
+      return ExecutionTreeRegistry.get(primary.getRegion(), pipelineId, version);
     }
     String region = TenantRegionResolver.getRegion(tenantId);
     if (region == null || region.isBlank()) {
@@ -55,7 +55,7 @@ public final class GlobalContextImpl implements GlobalContext {
       region = primary != null ? primary.getRegion() : null;
     }
     if (region == null || region.isBlank()) return null;
-    return ExecutionTreeRegistry.get(region, pipelineId);
+    return ExecutionTreeRegistry.get(region, pipelineId, version);
   }
 
   @Override
