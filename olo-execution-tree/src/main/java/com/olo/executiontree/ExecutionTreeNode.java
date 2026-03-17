@@ -1,6 +1,13 @@
 package com.olo.executiontree;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonPOJOBuilder;
+
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -13,6 +20,7 @@ import java.util.Map;
  *
  * @see NodeType
  */
+@JsonDeserialize(builder = ExecutionTreeNode.Builder.class)
 public final class ExecutionTreeNode {
 
   private final String id;
@@ -122,6 +130,27 @@ public final class ExecutionTreeNode {
         .build();
   }
 
+  /** Converts Map or List of {pluginParameter, variable} to Map for inputMappings/outputMappings. */
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> toInputOutputMap(Object o) {
+    if (o == null) return new LinkedHashMap<>();
+    if (o instanceof Map) return new LinkedHashMap<>((Map<String, Object>) o);
+    if (o instanceof List) {
+      Map<String, Object> out = new LinkedHashMap<>();
+      for (Object item : (List<?>) o) {
+        if (!(item instanceof Map)) continue;
+        Map<String, ?> m = (Map<String, ?>) item;
+        Object param = m.get("pluginParameter");
+        Object variable = m.get("variable");
+        if (param != null) out.put(param.toString(), variable != null ? variable.toString() : "");
+      }
+      return out;
+    }
+    return new LinkedHashMap<>();
+  }
+
+  @JsonPOJOBuilder(buildMethodName = "build", withPrefix = "")
+  @JsonIgnoreProperties(ignoreUnknown = true)
   public static final class Builder {
     private final String id;
     private final NodeType type;
@@ -143,20 +172,25 @@ public final class ExecutionTreeNode {
     private Map<String, String> connections;
     private List<String> allowedTenantIds;
 
-    private Builder(String id, NodeType type) {
+    @JsonCreator
+    public Builder(@JsonProperty("id") String id, @JsonProperty("type") NodeType type) {
       this.id = id;
       this.type = type;
     }
 
     public Builder name(String name) { this.name = name; return this; }
+    /** Alias for name; accepts "displayName" from protocol tree JSON. */
+    public Builder displayName(String displayName) { this.name = displayName; return this; }
     public Builder version(String version) { this.version = version; return this; }
     public Builder params(Map<String, Object> params) { this.params = params; return this; }
     public Builder children(List<ExecutionTreeNode> children) {
       this.children = children;
       return this;
     }
-    public Builder inputMappings(Map<String, Object> inputMappings) { this.inputMappings = inputMappings; return this; }
-    public Builder outputMappings(Map<String, Object> outputMappings) { this.outputMappings = outputMappings; return this; }
+    /** Accepts Map (compiler format) or List of {pluginParameter, variable} (protocol format). */
+    public Builder inputMappings(Object inputMappings) { this.inputMappings = toInputOutputMap(inputMappings); return this; }
+    /** Accepts Map (compiler format) or List of {pluginParameter, variable} (protocol format). */
+    public Builder outputMappings(Object outputMappings) { this.outputMappings = toInputOutputMap(outputMappings); return this; }
     public Builder timeout(Map<String, Object> timeout) { this.timeout = timeout; return this; }
     public Builder retryPolicy(Map<String, Object> retryPolicy) { this.retryPolicy = retryPolicy; return this; }
     public Builder metadata(Map<String, Object> metadata) { this.metadata = metadata; return this; }

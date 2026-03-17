@@ -144,6 +144,7 @@ public final class ExecutionTreeRegistry {
               rootNode,
               outputContract,
               resultMapping,
+              null,
               "SYNC",
               debugPipeline,
               dynamicPipeline);

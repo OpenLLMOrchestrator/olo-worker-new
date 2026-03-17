@@ -1,5 +1,8 @@
 package com.olo.executiontree;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Objects;
 
 public final class VariableDeclaration {
@@ -7,7 +10,11 @@ public final class VariableDeclaration {
   private final String type;
   private final VariableScope scope;
 
-  public VariableDeclaration(String name, String type, VariableScope scope) {
+  @JsonCreator
+  public VariableDeclaration(
+      @JsonProperty("name") String name,
+      @JsonProperty("type") String type,
+      @JsonProperty("scope") VariableScope scope) {
     this.name = Objects.requireNonNull(name, "name");
     this.type = type != null ? type : "string";
     this.scope = scope != null ? scope : VariableScope.INTERNAL;

@@ -10,6 +10,7 @@ This folder documents the **OLO worker** runtime: tools, plugins, features, and 
 | **[plugins](plugins.md)** | Plugin architecture: contracts (PluginExecutor, ExecutablePlugin), PluginRegistry, contract types, execution path, threading and lifecycle. |
 | **[features](features.md)** | Features architecture: pre/post hooks, phases (PRE, POST_SUCCESS, POST_ERROR, FINALLY), FeatureRegistry, FeatureAttachmentResolver, privilege (INTERNAL vs COMMUNITY). |
 | **[how_to_debug](how_to_debug.md)** | How to debug workflows: input format, starting a run (Temporal UI, integration test), dumping input and LocalContext. |
+| **[use-case-multi-model-consensus](use-case-multi-model-consensus.md)** | Multi-Model Consensus: planner plugin, architect/critic plugins, pipeline, and connections. |
 
 ## Relationship to other architecture docs
 

@@ -1,5 +1,6 @@
 package com.olo.internal.plugins;
 
+import com.olo.internal.plugins.consensus.ConsensusPluginProvider;
 import com.olo.join.reducer.OutputReducerPluginProvider;
 import com.olo.plugin.PluginManager;
 import com.olo.plugin.PluginProvider;
@@ -42,6 +43,7 @@ public final class InternalPlugins {
         pluginManager.registerInternal(new QdrantPluginProvider());
         pluginManager.registerInternal(new OllamaEmbeddingPluginProvider());
         pluginManager.registerInternal(new OutputReducerPluginProvider());
+        pluginManager.registerInternal(new ConsensusPluginProvider());
 
         String pluginsDirEnv = System.getenv(OLO_PLUGINS_DIR_ENV);
         Path pluginsDir = (pluginsDirEnv != null && !pluginsDirEnv.isBlank())

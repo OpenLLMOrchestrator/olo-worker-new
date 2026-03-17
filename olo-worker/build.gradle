@@ -99,3 +99,16 @@ tasks.register('workflowInputDebug', Test) {
     }
 }
 
+tasks.register('consensusUseCase', Test) {
+    group = 'verification'
+    description = 'Integration: run Multi-Model Consensus use case (PLANNER + architect/critic) against Temporal.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'integration'
+    }
+    filter {
+        includeTestsMatching 'com.olo.worker.ConsensusUseCaseIntegrationTest'
+    }
+}
+

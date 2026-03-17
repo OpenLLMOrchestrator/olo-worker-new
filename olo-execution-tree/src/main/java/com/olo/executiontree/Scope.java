@@ -1,5 +1,8 @@
 package com.olo.executiontree;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Map;
 import java.util.Set;
 
@@ -7,7 +10,8 @@ public final class Scope implements com.olo.executiontree.scope.Scope {
   private final Map<String, Object> plugins;
   private final Set<String> features;
 
-  public Scope(Map<String, Object> plugins, Set<String> features) {
+  @JsonCreator
+  public Scope(@JsonProperty("plugins") Map<String, Object> plugins, @JsonProperty("featuresRaw") Set<String> features) {
     this.plugins = plugins == null ? Map.of() : Map.copyOf(plugins);
     this.features = features == null ? Set.of() : Set.copyOf(features);
   }

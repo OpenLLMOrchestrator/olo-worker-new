@@ -7,6 +7,8 @@ import com.olo.plugin.PluginExecutor;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Single responsibility: invoke a plugin node (inputMappings → plugin → outputMappings).
@@ -38,7 +40,7 @@ public final class PluginInvoker {
         Map<String, Object> pluginInputs = new LinkedHashMap<>();
         for (ParameterMapping m : node.getInputMappings()) {
             Object val = variableEngine.get(m.getVariable());
-            pluginInputs.put(m.getPluginParameter(), val != null ? val : "");
+            pluginInputs.put(m.getPluginParameter(), substituteVariables(val, variableEngine));
         }
         String inputsJson = pluginExecutor.toJson(pluginInputs);
         long start = System.currentTimeMillis();
@@ -70,7 +72,7 @@ public final class PluginInvoker {
         if (inputVarToParam != null) {
             for (Map.Entry<String, String> e : inputVarToParam.entrySet()) {
                 Object val = variableEngine.get(e.getKey());
-                pluginInputs.put(e.getValue(), val != null ? val : "");
+                pluginInputs.put(e.getValue(), substituteVariables(val, variableEngine));
             }
         }
         String inputsJson = pluginExecutor.toJson(pluginInputs);
@@ -99,4 +101,20 @@ public final class PluginInvoker {
         return outputs != null ? outputs : Map.of();
     }
 
+    /** Replaces {{variableName}} in string values with variableEngine.get("variableName"); non-strings returned as-is. */
+    private static Object substituteVariables(Object value, VariableEngine variableEngine) {
+        if (value == null) return "";
+        if (!(value instanceof String s)) return value;
+        if (variableEngine == null) return s;
+        Pattern p = Pattern.compile("\\{\\{([^}]+)\\}\\}");
+        Matcher m = p.matcher(s);
+        StringBuilder sb = new StringBuilder();
+        while (m.find()) {
+            String varName = m.group(1).trim();
+            Object varVal = variableEngine.get(varName);
+            m.appendReplacement(sb, Matcher.quoteReplacement(varVal != null ? varVal.toString() : ""));
+        }
+        m.appendTail(sb);
+        return sb.toString();
+    }
 }

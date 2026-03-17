@@ -1,6 +1,8 @@
 package com.olo.executiontree;
 
-import java.util.Collections;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -16,7 +18,8 @@ public final class VariableRegistry {
   private final List<VariableDeclaration> declarations;
   private final Map<String, VariableDeclaration> byName;
 
-  public VariableRegistry(List<VariableDeclaration> declarations) {
+  @JsonCreator
+  public VariableRegistry(@JsonProperty("declarations") List<VariableDeclaration> declarations) {
     this.declarations = declarations == null ? List.of() : List.copyOf(declarations);
     this.byName = this.declarations.stream().collect(Collectors.toUnmodifiableMap(VariableDeclaration::getName, d -> d));
   }

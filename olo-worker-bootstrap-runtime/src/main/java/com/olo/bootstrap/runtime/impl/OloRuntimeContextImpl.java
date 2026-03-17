@@ -70,6 +70,7 @@ public final class OloRuntimeContextImpl implements OloRuntimeContext {
                 deepCopyRoot,
                 def.getOutputContract(),
                 def.getResultMappingMap(),
+                null,
                 def.getExecutionType() != null ? def.getExecutionType().name() : "SYNC",
                 def.isDebugPipeline(),
                 def.isDynamicPipeline());

@@ -1,5 +1,9 @@
 package com.olo.executiontree;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.olo.executiontree.config.ExecutionType;
 import com.olo.executiontree.inputcontract.InputContract;
 import com.olo.executiontree.inputcontract.InputContractImpl;
@@ -9,6 +13,7 @@ import com.olo.executiontree.tree.CompilerNodeAdapter;
 import com.olo.executiontree.variableregistry.VariableRegistryEntry;
 import com.olo.executiontree.variableregistry.VariableRegistryEntryAdapter;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,9 +27,11 @@ import java.util.stream.Collectors;
  * @see VariableRegistry
  * @see Scope
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public final class PipelineDefinition implements com.olo.executiontree.config.PipelineDefinition {
   private final String name;
   private final Map<String, Object> inputContract;
+  @JsonProperty("variableRegistryRaw")
   private final VariableRegistry variableRegistry;
   private final Scope scope;
   private final ExecutionTreeNode executionTree;
@@ -34,24 +41,50 @@ public final class PipelineDefinition implements com.olo.executiontree.config.Pi
   private final boolean isDebugPipeline;
   private final boolean isDynamicPipeline;
 
+  /** Converts Map or List of result mappings (e.g. {variable}) to Map<String, String>. */
+  @SuppressWarnings("unchecked")
+  private static Map<String, String> toResultMappingMap(Object o) {
+    if (o == null) return Map.of();
+    if (o instanceof Map) {
+      Map<String, ?> m = (Map<String, ?>) o;
+      Map<String, String> out = new LinkedHashMap<>();
+      m.forEach((k, v) -> out.put(k, v != null ? v.toString() : ""));
+      return out;
+    }
+    if (o instanceof List) {
+      Map<String, String> out = new LinkedHashMap<>();
+      for (Object item : (List<?>) o) {
+        if (item instanceof Map) {
+          Map<String, ?> m = (Map<String, ?>) item;
+          Object var = m.get("variable");
+          if (var != null) out.put(var.toString(), "");
+        }
+      }
+      return out;
+    }
+    return Map.of();
+  }
+
+  @JsonCreator
   public PipelineDefinition(
-      String name,
-      Map<String, Object> inputContract,
-      VariableRegistry variableRegistry,
-      Scope scope,
-      ExecutionTreeNode executionTree,
-      Map<String, Object> outputContract,
-      Map<String, String> resultMapping,
-      String executionType,
-      boolean isDebugPipeline,
-      boolean isDynamicPipeline) {
+      @JsonProperty("name") String name,
+      @JsonProperty("inputContractMap") Map<String, Object> inputContract,
+      @JsonProperty("variableRegistryRaw") VariableRegistry variableRegistry,
+      @JsonProperty("scope") Scope scope,
+      @JsonProperty("executionTreeRoot") ExecutionTreeNode executionTree,
+      @JsonProperty("outputContract") Map<String, Object> outputContract,
+      @JsonProperty("resultMappingMap") Object resultMappingMap,
+      @JsonProperty("resultMapping") Object resultMappingList,
+      @JsonProperty("executionType") String executionType,
+      @JsonProperty("debugPipeline") boolean isDebugPipeline,
+      @JsonProperty("dynamicPipeline") boolean isDynamicPipeline) {
     this.name = name;
     this.inputContract = inputContract == null ? Map.of() : Map.copyOf(inputContract);
     this.variableRegistry = variableRegistry;
     this.scope = scope;
     this.executionTree = executionTree;
     this.outputContract = outputContract == null ? Map.of() : Map.copyOf(outputContract);
-    this.resultMapping = resultMapping == null ? Map.of() : Map.copyOf(resultMapping);
+    this.resultMapping = toResultMappingMap(resultMappingMap != null ? resultMappingMap : resultMappingList);
     this.executionType = executionType != null ? executionType : "SYNC";
     this.isDebugPipeline = isDebugPipeline;
     this.isDynamicPipeline = isDynamicPipeline;
@@ -62,6 +95,7 @@ public final class PipelineDefinition implements com.olo.executiontree.config.Pi
   public InputContract getInputContract() { return new InputContractImpl(inputContract, false); }
   public Map<String, Object> getInputContractMap() { return inputContract; }
   @Override
+  @JsonIgnore
   public List<VariableRegistryEntry> getVariableRegistry() {
     return variableRegistry != null && variableRegistry.getDeclarations() != null
         ? variableRegistry.getDeclarations().stream().map(VariableRegistryEntryAdapter::new).collect(Collectors.toList())
